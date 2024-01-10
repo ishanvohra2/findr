@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Findr</string>
+    <string name="search_bar_hint">Search here...</string>
+    <string name="users_title">Trending users</string>
+    <string name="repos_title">Trending repositories</string>
+    <string name="profile_page">Profile</string>
+    <string name="followers">Followers</string>
+    <string name="search_users">Search users</string>
+    <string name="search_repos">Search repositories</string>
+    <string name="no_search_results">Could not find any repository or user</string>
+</resources>
