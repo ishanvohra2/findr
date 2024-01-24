@@ -14,7 +14,7 @@ class HomeRepository {
     suspend fun searchUser(
         query: String,
         sortBy: String = "followers",
-        limit: Int = 5
+        limit: Int = 10
     ) = retrofitClient.instance.searchUsers(
         query, sortBy, limit
     )
@@ -22,9 +22,13 @@ class HomeRepository {
     suspend fun searchRepos(
         query: String = "stars%3A%3E%3D1000",
         sortBy: String = "stars",
-        limit: Int = 3
+        limit: Int = 10
     ) = retrofitClient.instance.searchRepositories(
         query, sortBy, limit
     )
+
+    suspend fun fetchReceivedEvents(page: Int = 1, username: String) = retrofitClient
+        .instance
+        .getReceivedEventsByUsername(username, page = page)
 
 }

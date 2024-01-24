@@ -3,9 +3,14 @@ package com.ishanvohra2.findr.networking
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.ishanvohra2.findr.datastore.DataStoreConstants
+import com.ishanvohra2.findr.datastore.DataStoreManager
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.runBlocking
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.java.KoinJavaComponent.inject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -17,6 +22,18 @@ class RetrofitClient(private val context: Context) {
 
         val okHttpClient = OkHttpClient.Builder()
             .cache(myCache)
+            .addInterceptor { chain ->
+                var request = chain.request()
+                runBlocking {
+                    getAuthToken()?.let{ token ->
+                        request = request.newBuilder().header(
+                            "Authorization",
+                            "Bearer $token"
+                        ).build()
+                    }
+                }
+                chain.proceed(request)
+            }
             .addInterceptor { chain ->
                 var request = chain.request()
                 request = if (hasNetwork(context))
@@ -46,6 +63,11 @@ class RetrofitClient(private val context: Context) {
         retrofit.create(Api::class.java)
     }
 
+    private suspend fun getAuthToken(): String? {
+        val dataStore by inject<DataStoreManager>(DataStoreManager::class.java)
+        return dataStore.getPreference(DataStoreConstants.AUTH_TOKEN).firstOrNull()
+    }
+
     private fun hasNetwork(context: Context): Boolean {
         val connectivityManager = context
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -54,9 +76,7 @@ class RetrofitClient(private val context: Context) {
         return when {
             actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
             actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-            //for other device how are able to connect with Ethernet
             actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-            //for check internet over Bluetooth
             actNw.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> true
             else -> false
         }

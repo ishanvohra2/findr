@@ -1,7 +1,8 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 android {
@@ -22,14 +23,10 @@ android {
     }
 
     buildTypes {
-        val token: String = com.android.build.gradle.internal.cxx.configure
-            .gradleLocalProperties(rootDir)
-            .getProperty("githubprivatetoken")
         debug {
-            buildConfigField("String", "githubToken", token)
+
         }
         release {
-            buildConfigField("String", "githubToken", token)
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -99,4 +96,13 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.2.2")
     //Navigation
     implementation("androidx.navigation:navigation-compose:2.5.3")
+
+    //Firebase
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-crashlytics")
+    implementation("com.google.firebase:firebase-analytics")
+
+    //Datastore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 }
