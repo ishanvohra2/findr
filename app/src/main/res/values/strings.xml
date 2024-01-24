@@ -5,7 +5,25 @@
     <string name="repos_title">Trending repositories</string>
     <string name="profile_page">Profile</string>
     <string name="followers">Followers</string>
+    <string name="following">Following</string>
     <string name="search_users">Search users</string>
     <string name="search_repos">Search repositories</string>
     <string name="no_search_results">Could not find any repository or user</string>
+    <string name="login_text">Login using GitHub</string>
+    <string name="toolbar_title">Findr for GitHub</string>
+    <string name="user_profile_toolbar">Your profile</string>
+    <string name="feed_title">Your feed</string>
+    <string name="public_repos">Public Repos</string>
+    <string name="recent_activity">Recent activity</string>
+    <string name="repos">Repositories</string>
+    <string name="notifications">Notifications</string>
+    <string name="edit_profile">Edit profile</string>
+    <string name="name_hint">Name</string>
+    <string name="bio_hint">Bio</string>
+    <string name="username_hint">Username</string>
+    <string name="company_hint">Company</string>
+    <string name="update_button">Update</string>
+    <string name="blog_hint">Blog</string>
+    <string name="logout">Logout</string>
+    <string name="empty_noti_message">No notifications found!</string>
 </resources>

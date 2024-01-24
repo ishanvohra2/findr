@@ -2,15 +2,21 @@ package com.ishanvohra2.findr.viewModels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.ishanvohra2.findr.combineState
+import com.ishanvohra2.findr.data.EventResponseItem
 import com.ishanvohra2.findr.data.SearchRepositoriesResponse
 import com.ishanvohra2.findr.data.SearchUsersResponse
+import com.ishanvohra2.findr.datastore.DataStoreConstants
+import com.ishanvohra2.findr.datastore.DataStoreManager
 import com.ishanvohra2.findr.repositories.HomeRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import org.koin.java.KoinJavaComponent
 
 class HomeViewModel: ViewModel() {
 
@@ -22,6 +28,9 @@ class HomeViewModel: ViewModel() {
     )
     val searchFlow = MutableStateFlow<SearchUserUiState>(
         SearchUserUiState.IdleState
+    )
+    val receivedEvents = MutableStateFlow<ReceivedEventsUiState>(
+        ReceivedEventsUiState.LoadingState
     )
 
     private var searchJob: Job? = null
@@ -92,6 +101,43 @@ class HomeViewModel: ViewModel() {
             searchJob?.cancel()
             searchFlow.emit(SearchUserUiState.IdleState)
         }
+    }
+
+    fun getReceivedEvents(){
+        viewModelScope.launch {
+            val dataStore by
+            KoinJavaComponent.inject<DataStoreManager>(DataStoreManager::class.java)
+            dataStore.getPreference(DataStoreConstants.USER_PROFILE)
+                .firstOrNull()
+                ?.let {
+                    val map = Gson().fromJson(it, Map::class.java)
+                            as Map<String, Any?>
+                    HomeRepository().fetchReceivedEvents(
+                        username = map["login"].toString()
+                    ).run {
+                        if(this.isSuccessful && body() != null){
+                            receivedEvents.emit(ReceivedEventsUiState.SuccessState(body()!!))
+                        }
+                        else{
+                            receivedEvents.emit(
+                                ReceivedEventsUiState.ErrorState(
+                                    errorBody()?.string()
+                                )
+                            )
+                        }
+                    }
+                }
+                ?: run{
+                    receivedEvents.emit(ReceivedEventsUiState.ErrorState(null))
+                }
+        }
+    }
+
+    sealed class ReceivedEventsUiState{
+        data object LoadingState: ReceivedEventsUiState()
+        data class ErrorState(val message: String?): ReceivedEventsUiState()
+
+        data class SuccessState(val list: List<EventResponseItem>): ReceivedEventsUiState()
     }
 
     sealed class SearchUserUiState{
