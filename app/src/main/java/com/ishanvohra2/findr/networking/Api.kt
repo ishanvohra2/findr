@@ -4,10 +4,13 @@ import com.ishanvohra2.findr.data.EventResponseItem
 import com.ishanvohra2.findr.data.NotificationResponseItem
 import com.ishanvohra2.findr.data.SearchRepositoriesResponse
 import com.ishanvohra2.findr.data.SearchUsersResponse
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -82,5 +85,20 @@ interface Api {
     suspend fun getNotifications(
         @Query("page")page: Int
     ): Response<List<NotificationResponseItem>>
+
+    @GET("user/following/{username}")
+    suspend fun checkIfUserIsFollowed(
+        @Path("username")username: String
+    ): Response<ResponseBody>
+
+    @PUT("user/following/{username}")
+    suspend fun followUser(
+        @Path("username")username: String
+    ): Response<ResponseBody>
+
+    @DELETE("user/following/{username}")
+    suspend fun unfollowUser(
+        @Path("username")username: String
+    ): Response<ResponseBody>
 
 }
