@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBackIos
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,12 +37,14 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.ishanvohra2.findr.R
+import com.ishanvohra2.findr.viewModels.MainViewModel
 import com.ishanvohra2.findr.viewModels.UserProfileViewModel
 
 class ProfileComponent(
     private val onBackPressed: () -> Unit,
     private val onProfileClicked: (username: String) -> Unit,
-    private val onFollowerFollowingClicked: (username: String) -> Unit
+    private val onFollowerFollowingClicked: (username: String) -> Unit,
+    private val userProfileUiState: MainViewModel.UserProfileUiState
 ) {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -72,156 +75,172 @@ class ProfileComponent(
     @Composable
     fun ProfileDetails(profileViewModel: UserProfileViewModel, user: String){
         profileViewModel.getUserByUsername(user)
-        when(val state =
-            profileViewModel.profileUiState.collectAsState().value){
-            is UserProfileViewModel.UserProfileUiState.ErrorState -> {/*TODO()*/
-            }
-            UserProfileViewModel.UserProfileUiState.LoadingState -> {
-                LoadingState()
-            }
-            is UserProfileViewModel.UserProfileUiState.SuccessState -> {
-                profileViewModel.getRecentEvents(user)
-                val userDetails = state.userDetails
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .padding(start = dimensionResource(id = R.dimen.large_spacing)),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val painter = rememberAsyncImagePainter(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .diskCachePolicy(CachePolicy.ENABLED)
-                                .data(userDetails["avatar_url"])
-                                .build()
-                        )
-                        Image(
-                            painter = painter,
-                            contentDescription = null,
+        profileViewModel.userProfileFlow().collectAsState().value.run {
+            when(val state = first){
+                is UserProfileViewModel.UserProfileUiState.ErrorState -> {/*TODO()*/
+                }
+                UserProfileViewModel.UserProfileUiState.LoadingState -> {
+                    LoadingState()
+                }
+                is UserProfileViewModel.UserProfileUiState.SuccessState -> {
+                    profileViewModel.getRecentEvents(user)
+                    val userDetails = state.userDetails
+                    Column {
+                        Row(
                             modifier = Modifier
-                                .padding(vertical = dimensionResource(id = R.dimen.large_spacing))
-                                .size(150.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                        Column(
-                            modifier = Modifier
-                                .padding(
-                                    start = dimensionResource(id = R.dimen.large_spacing),
-                                    top = dimensionResource(id = R.dimen.small_spacing),
-                                    end = dimensionResource(id = R.dimen.border_margin),
-                                    bottom = dimensionResource(id = R.dimen.small_spacing)
-                                ),
+                                .padding(start = dimensionResource(id = R.dimen.large_spacing)),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "@${userDetails["login"]}",
+                            val painter = rememberAsyncImagePainter(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .data(userDetails["avatar_url"])
+                                    .build()
+                            )
+                            Image(
+                                painter = painter,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .padding(vertical = dimensionResource(id = R.dimen.large_spacing))
+                                    .size(150.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Column(
                                 modifier = Modifier
                                     .padding(
+                                        start = dimensionResource(id = R.dimen.large_spacing),
+                                        top = dimensionResource(id = R.dimen.small_spacing),
+                                        end = dimensionResource(id = R.dimen.border_margin),
                                         bottom = dimensionResource(id = R.dimen.small_spacing)
                                     ),
-                                fontFamily = FontFamily.SansSerif,
-                                fontSize = TextUnit(18f, TextUnitType.Sp)
-                            )
-                            Text(
-                                text = "${userDetails["name"]}",
-                                modifier = Modifier
-                                    .padding(
-                                        bottom = dimensionResource(id = R.dimen.small_spacing)
-                                    ),
-                                fontFamily = FontFamily.SansSerif,
-                                fontSize = TextUnit(16f, TextUnitType.Sp)
-                            )
-                            Text(
-                                text = "${userDetails["bio"]?:""}",
-                                modifier = Modifier
-                                    .padding(
-                                        bottom = dimensionResource(id = R.dimen.small_spacing)
-                                    ),
-                                fontFamily = FontFamily.SansSerif,
-                                fontSize = TextUnit(16f, TextUnitType.Sp)
-                            )
-                            Text(
-                                text = "${userDetails["company"]?:""}",
-                                modifier = Modifier
-                                    .padding(
-                                        bottom = dimensionResource(id = R.dimen.small_spacing)
-                                    ),
-                                fontFamily = FontFamily.SansSerif,
-                                fontSize = TextUnit(16f, TextUnitType.Sp)
-                            )
+                            ) {
+                                Text(
+                                    text = "@${userDetails["login"]}",
+                                    modifier = Modifier
+                                        .padding(
+                                            bottom = dimensionResource(id = R.dimen.small_spacing)
+                                        ),
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontSize = TextUnit(18f, TextUnitType.Sp)
+                                )
+                                Text(
+                                    text = "${userDetails["name"]}",
+                                    modifier = Modifier
+                                        .padding(
+                                            bottom = dimensionResource(id = R.dimen.small_spacing)
+                                        ),
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontSize = TextUnit(16f, TextUnitType.Sp)
+                                )
+                                userDetails["bio"]?.let {
+                                    Text(
+                                        text = "$it",
+                                        modifier = Modifier
+                                            .padding(
+                                                bottom = dimensionResource(id = R.dimen.small_spacing)
+                                            ),
+                                        fontFamily = FontFamily.SansSerif,
+                                        fontSize = TextUnit(16f, TextUnitType.Sp)
+                                    )
+                                }
+                                userDetails["company"]?.let {
+                                    Text(
+                                        text = "$it",
+                                        modifier = Modifier
+                                            .padding(
+                                                bottom = dimensionResource(id = R.dimen.small_spacing)
+                                            ),
+                                        fontFamily = FontFamily.SansSerif,
+                                        fontSize = TextUnit(16f, TextUnitType.Sp)
+                                    )
+                                }
+                                if(userProfileUiState is
+                                            MainViewModel.UserProfileUiState.SuccessState){
+                                    Button(onClick = {
+                                        if(second)
+                                            profileViewModel.unfollowUser(user)
+                                        else
+                                            profileViewModel.followUser(user)
+                                    }) {
+                                        Text(text = if(second)"Unfollow" else "Follow")
+                                    }
+                                }
+                            }
                         }
+                        Row(
+                            modifier = Modifier
+                                .clickable { onFollowerFollowingClicked(user) }
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                Text(
+                                    text = "${
+                                        if(userDetails["followers"] is Double){
+                                            (userDetails["followers"] as Double).toInt()
+                                        }
+                                        else{
+                                            userDetails["followers"] as Int
+                                        }
+                                    }",
+                                    modifier = Modifier
+                                        .padding(top = dimensionResource(id = R.dimen.large_spacing))
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.followers)
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                Text(
+                                    text = "${
+                                        if(userDetails["following"] is Double){
+                                            (userDetails["following"] as Double).toInt()
+                                        }
+                                        else{
+                                            userDetails["following"] as Int
+                                        }
+                                    }",
+                                    modifier = Modifier
+                                        .padding(top = dimensionResource(id = R.dimen.large_spacing))
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.following)
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                Text(
+                                    text = "${
+                                        if(userDetails["public_repos"] is Double){
+                                            (userDetails["public_repos"] as Double).toInt()
+                                        }
+                                        else{
+                                            userDetails["public_repos"] as Int
+                                        }
+                                    }",
+                                    modifier = Modifier
+                                        .padding(top = dimensionResource(id = R.dimen.large_spacing))
+                                )
+                                Text(
+                                    text = stringResource(id = R.string.public_repos)
+                                )
+                            }
+                        }
+                        RecentEvents(profileViewModel, user)
                     }
-                    Row(
-                        modifier = Modifier
-                            .clickable { onFollowerFollowingClicked(user) }
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            Text(
-                                text = "${
-                                    if(userDetails["followers"] is Double){
-                                        (userDetails["followers"] as Double).toInt()
-                                    }
-                                    else{
-                                        userDetails["followers"] as Int
-                                    }
-                                }",
-                                modifier = Modifier
-                                    .padding(top = dimensionResource(id = R.dimen.large_spacing))
-                            )
-                            Text(
-                                text = stringResource(id = R.string.followers)
-                            )
-                        }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            Text(
-                                text = "${
-                                    if(userDetails["following"] is Double){
-                                        (userDetails["following"] as Double).toInt()
-                                    }
-                                    else{
-                                        userDetails["following"] as Int
-                                    }
-                                }",
-                                modifier = Modifier
-                                    .padding(top = dimensionResource(id = R.dimen.large_spacing))
-                            )
-                            Text(
-                                text = stringResource(id = R.string.following)
-                            )
-                        }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            Text(
-                                text = "${
-                                    if(userDetails["public_repos"] is Double){
-                                        (userDetails["public_repos"] as Double).toInt()
-                                    }
-                                    else{
-                                        userDetails["public_repos"] as Int
-                                    }
-                                }",
-                                modifier = Modifier
-                                    .padding(top = dimensionResource(id = R.dimen.large_spacing))
-                            )
-                            Text(
-                                text = stringResource(id = R.string.public_repos)
-                            )
-                        }
-                    }
-                    RecentEvents(profileViewModel, user)
                 }
             }
         }
@@ -247,7 +266,8 @@ class ProfileComponent(
                                 .padding(
                                     start = dimensionResource(id = R.dimen.border_margin),
                                     end = dimensionResource(id = R.dimen.border_margin),
-                                    bottom = dimensionResource(id = R.dimen.small_spacing)
+                                    bottom = dimensionResource(id = R.dimen.small_spacing),
+                                    top = dimensionResource(id = R.dimen.medium_spacing)
                                 ),
                             fontFamily = FontFamily.SansSerif,
                             fontSize = TextUnit(24f, TextUnitType.Sp)

@@ -1,11 +1,11 @@
 package com.ishanvohra2.findr.repositories
 
 import com.ishanvohra2.findr.networking.RetrofitClient
-import org.koin.java.KoinJavaComponent
+import org.koin.java.KoinJavaComponent.inject
 
 class ProfileRepository {
 
-    private val retrofitClient by KoinJavaComponent.inject<RetrofitClient>(RetrofitClient::class.java)
+    private val retrofitClient by inject<RetrofitClient>(RetrofitClient::class.java)
 
     suspend fun updateUser(map: String) =
         retrofitClient.instance.updateUser(map)
@@ -13,12 +13,12 @@ class ProfileRepository {
     suspend fun getFollowers(
         username: String,
         page: Int = 1
-    ) = retrofitClient.instance.getFollowersByUsername(username, page)
+    ) = retrofitClient.instanceWithoutCache.getFollowersByUsername(username, page)
 
     suspend fun getFollowing(
         username: String,
         page: Int = 1
-    ) = retrofitClient.instance.getFollowingByUsername(username, page)
+    ) = retrofitClient.instanceWithoutCache.getFollowingByUsername(username, page)
 
     suspend fun getRepos(
         username: String,
@@ -30,7 +30,19 @@ class ProfileRepository {
         .getEventsByUsername(username, page = page)
 
     suspend fun getUserByUsername(username: String) = retrofitClient
-        .instance
+        .instanceWithoutCache
         .getUserByUsername(username)
+
+    suspend fun checkIfUserIsFollowed(username: String) = retrofitClient
+        .instanceWithoutCache
+        .checkIfUserIsFollowed(username)
+
+    suspend fun followUser(username: String) = retrofitClient
+        .instanceWithoutCache
+        .followUser(username)
+
+    suspend fun unfollowUser(username: String) = retrofitClient
+        .instanceWithoutCache
+        .unfollowUser(username)
 
 }
