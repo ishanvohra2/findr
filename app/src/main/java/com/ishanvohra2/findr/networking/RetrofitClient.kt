@@ -63,6 +63,37 @@ class RetrofitClient(private val context: Context) {
         retrofit.create(Api::class.java)
     }
 
+    val instanceWithoutCache: Api by lazy {
+        val myCache = Cache(context.cacheDir, cacheSize)
+
+        val okHttpClient = OkHttpClient.Builder()
+            .cache(myCache)
+            .addInterceptor { chain ->
+                var request = chain.request()
+                runBlocking {
+                    getAuthToken()?.let{ token ->
+                        request = request.newBuilder().header(
+                            "Authorization",
+                            "Bearer $token"
+                        ).build()
+                    }
+                }
+                chain.proceed(request)
+            }
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                this.level = HttpLoggingInterceptor.Level.BODY }
+            )
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(" https://api.github.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(okHttpClient)
+            .build()
+
+        retrofit.create(Api::class.java)
+    }
+
     private suspend fun getAuthToken(): String? {
         val dataStore by inject<DataStoreManager>(DataStoreManager::class.java)
         return dataStore.getPreference(DataStoreConstants.AUTH_TOKEN).firstOrNull()

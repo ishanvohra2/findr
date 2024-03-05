@@ -164,7 +164,8 @@ class MainActivity : ComponentActivity() {
                                     },
                                     { user ->
                                         navController.navigate("followerFollowing/$user")
-                                    }
+                                    },
+                                    viewModel.uiState.value
                                 ).ProfilePage(username = username)
                             }
                         }
