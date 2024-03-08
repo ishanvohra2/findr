@@ -42,6 +42,8 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.ishanvohra2.findr.R
 import com.ishanvohra2.findr.viewModels.HomeViewModel
 import com.ishanvohra2.findr.viewModels.MainViewModel
@@ -53,6 +55,7 @@ class HomeComponents(
 ){
 
     private val blurState = mutableStateOf(0.dp)
+    private val isRefreshing = mutableStateOf(false)
 
     @Composable
     fun HomePage(
@@ -69,6 +72,7 @@ class HomeComponents(
                 LoggedOutExplorePage(homeViewModel = homeViewModel)
             }
             is MainViewModel.UserProfileUiState.SuccessState -> {
+                homeViewModel.getReceivedEvents()
                 LoggedInExplorePage(homeViewModel)
             }
         }
@@ -77,43 +81,49 @@ class HomeComponents(
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun LoggedInExplorePage(homeViewModel: HomeViewModel){
-        homeViewModel.getReceivedEvents()
-        Column {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.toolbar_title)
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { onNotificationClicked() }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "notifications",
+        SwipeRefresh(
+            state = rememberSwipeRefreshState(isRefreshing = isRefreshing.value),
+            onRefresh = {
+                homeViewModel.getReceivedEvents(true)
+            }
+        ) {
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(id = R.string.toolbar_title)
                         )
+                    },
+                    actions = {
+                        IconButton(onClick = { onNotificationClicked() }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Notifications,
+                                contentDescription = "notifications",
+                            )
+                        }
+                        IconButton(onClick = { onAccountClicked() }) {
+                            Icon(
+                                imageVector = Icons.Filled.AccountCircle,
+                                contentDescription = "account",
+                            )
+                        }
                     }
-                    IconButton(onClick = { onAccountClicked() }) {
-                        Icon(
-                            imageVector = Icons.Filled.AccountCircle,
-                            contentDescription = "account",
-                        )
-                    }
-                }
-            )
-            val scrollState = rememberScrollState()
-            Column(
-                modifier = Modifier
-                    .verticalScroll(scrollState)
-            ) {
-                SearchField(homeViewModel)
+                )
+                val scrollState = rememberScrollState()
                 Column(
                     modifier = Modifier
-                        .blur(blurState.value)
-                        .align(Alignment.CenterHorizontally)
+                        .verticalScroll(scrollState)
                 ) {
-                    ReceivedEvents(homeViewModel)
+                    SearchField(homeViewModel)
+                    Column(
+                        modifier = Modifier
+                            .blur(blurState.value)
+                            .align(Alignment.CenterHorizontally)
+                    ) {
+                        ReceivedEvents(homeViewModel)
+                    }
+                    TrendingComponent(homeViewModel = homeViewModel)
                 }
-                TrendingComponent(homeViewModel = homeViewModel)
             }
         }
     }
@@ -121,33 +131,39 @@ class HomeComponents(
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun LoggedOutExplorePage(homeViewModel: HomeViewModel){
-        Column {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(id = R.string.toolbar_title)
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { onAccountClicked() }) {
-                        Icon(
-                            imageVector = Icons.Filled.AccountCircle,
-                            contentDescription = "account",
+        SwipeRefresh(state = rememberSwipeRefreshState(isRefreshing = isRefreshing.value),
+            onRefresh = {
+                homeViewModel.fetchTrendingRepos(true)
+                homeViewModel.fetchTrendingUsers(true)
+            }) {
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(id = R.string.toolbar_title)
                         )
+                    },
+                    actions = {
+                        IconButton(onClick = { onAccountClicked() }) {
+                            Icon(
+                                imageVector = Icons.Filled.AccountCircle,
+                                contentDescription = "account",
+                            )
+                        }
                     }
-                }
-            )
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-            ) {
-                SearchField(homeViewModel)
+                )
                 Column(
                     modifier = Modifier
-                        .blur(blurState.value)
-                        .align(Alignment.CenterHorizontally)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    TrendingComponent(homeViewModel)
+                    SearchField(homeViewModel)
+                    Column(
+                        modifier = Modifier
+                            .blur(blurState.value)
+                            .align(Alignment.CenterHorizontally)
+                    ) {
+                        TrendingComponent(homeViewModel)
+                    }
                 }
             }
         }
@@ -158,14 +174,17 @@ class HomeComponents(
         when(val state =
             homeViewModel.receivedEvents.collectAsState().value) {
             is HomeViewModel.ReceivedEventsUiState.ErrorState -> {
+                isRefreshing.value = false
                 /*TODO*/
             }
 
             HomeViewModel.ReceivedEventsUiState.LoadingState -> {
+                isRefreshing.value = true
                 LoadingState()
             }
 
             is HomeViewModel.ReceivedEventsUiState.SuccessState -> {
+                isRefreshing.value = false
                 Column {
                     Text(
                         text = stringResource(id = R.string.feed_title),
@@ -194,12 +213,15 @@ class HomeComponents(
         homeViewModel.homeUiFlow().collectAsState().value.run {
             when(val s = this.first){
                 is HomeViewModel.TrendingUsersUiState.ErrorState -> {
+                    isRefreshing.value = false
                     //TODO Show error
                 }
                 HomeViewModel.TrendingUsersUiState.LoadingState -> {
+                    isRefreshing.value = true
                     LoadingState()
                 }
                 is HomeViewModel.TrendingUsersUiState.SuccessState -> {
+                    isRefreshing.value = false
                     Text(
                         text = stringResource(id = R.string.users_title),
                         modifier = Modifier
