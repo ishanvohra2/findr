@@ -10,6 +10,8 @@ import com.ishanvohra2.findr.data.SearchUsersResponse
 import com.ishanvohra2.findr.datastore.DataStoreConstants
 import com.ishanvohra2.findr.datastore.DataStoreManager
 import com.ishanvohra2.findr.repositories.HomeRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,11 +47,12 @@ class HomeViewModel: ViewModel() {
         }
     }
 
-    fun fetchTrendingUsers(){
-        viewModelScope.launch {
-            if(trendingUsersFlow.value is TrendingUsersUiState.SuccessState) {
+    fun fetchTrendingUsers(refresh: Boolean = false){
+        CoroutineScope(Dispatchers.IO).launch {
+            if(trendingUsersFlow.value is TrendingUsersUiState.SuccessState && !refresh) {
                 return@launch
             }
+            trendingUsersFlow.emit(TrendingUsersUiState.LoadingState)
             HomeRepository().fetchTrendingUsers().run {
                 if(this.isSuccessful && this.body()!=null){
                     trendingUsersFlow.emit(TrendingUsersUiState.SuccessState(
@@ -63,11 +66,12 @@ class HomeViewModel: ViewModel() {
         }
     }
 
-    fun fetchTrendingRepos(){
-        viewModelScope.launch {
-            if(trendingReposFlow.value is TrendingReposUiState.SuccessState) {
+    fun fetchTrendingRepos(refresh: Boolean = false){
+        CoroutineScope(Dispatchers.IO).launch {
+            if(trendingReposFlow.value is TrendingReposUiState.SuccessState && !refresh) {
                 return@launch
             }
+            trendingReposFlow.emit(TrendingReposUiState.LoadingState)
             HomeRepository().fetchTrendingRepos().run {
                 if(this.isSuccessful && this.body()!=null){
                     trendingReposFlow.emit(TrendingReposUiState.SuccessState(
@@ -83,7 +87,7 @@ class HomeViewModel: ViewModel() {
 
     fun fetchSearchResponse(query: String){
         searchJob?.cancel()
-        searchJob = viewModelScope.launch {
+        searchJob = CoroutineScope(Dispatchers.IO).launch {
             searchFlow.emit(SearchUserUiState.LoadingState)
             delay(3000L)
             val users: SearchUsersResponse? = HomeRepository().searchUser(query).body()
@@ -97,21 +101,25 @@ class HomeViewModel: ViewModel() {
     }
 
     fun clearSearchData() {
-        viewModelScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             searchJob?.cancel()
             searchFlow.emit(SearchUserUiState.IdleState)
         }
     }
 
-    fun getReceivedEvents(){
-        viewModelScope.launch {
+    fun getReceivedEvents(refresh: Boolean = false){
+        CoroutineScope(Dispatchers.IO).launch {
+            if(receivedEvents.value is ReceivedEventsUiState.SuccessState && !refresh) {
+                return@launch
+            }
             val dataStore by
             KoinJavaComponent.inject<DataStoreManager>(DataStoreManager::class.java)
             dataStore.getPreference(DataStoreConstants.USER_PROFILE)
                 .firstOrNull()
                 ?.let {
                     val map = Gson().fromJson(it, Map::class.java)
-                            as Map<String, Any?>
+                            as Map<*, *>
+                    receivedEvents.emit(ReceivedEventsUiState.LoadingState)
                     HomeRepository().fetchReceivedEvents(
                         username = map["login"].toString()
                     ).run {
